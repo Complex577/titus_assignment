@@ -30,14 +30,35 @@ class PlateValidator {
 
   /// From a list of candidate strings, returns the best plate match.
   static String extractBest(List<String> candidates) {
-    // Prefer a candidate that fully matches a plate pattern
-    for (final c in candidates) {
-      if (isValidPlate(c)) return normalize(c);
-    }
-    // Fall back to the longest candidate (most likely to be the plate)
     if (candidates.isEmpty) return '';
-    final sorted = [...candidates]..sort((a, b) => b.length.compareTo(a.length));
-    return normalize(sorted.first);
+
+    final normalized = candidates
+        .map(normalize)
+        .where((candidate) => _clean(candidate).isNotEmpty)
+        .toSet()
+        .toList();
+
+    normalized.sort((a, b) => scoreCandidate(b).compareTo(scoreCandidate(a)));
+    return normalized.first;
+  }
+
+  /// Gives fuller mixed letter/number plates a better score than short partial hits.
+  static int scoreCandidate(String text) {
+    final cleaned = _clean(text);
+    if (cleaned.isEmpty) return 0;
+
+    final hasLetters = RegExp(r'[A-Z]').hasMatch(cleaned);
+    final hasDigits = RegExp(r'\d').hasMatch(cleaned);
+    final isValid = isValidPlate(text);
+    final compactLength = cleaned.length;
+
+    var score = compactLength;
+    if (hasLetters) score += 6;
+    if (hasDigits) score += 6;
+    if (hasLetters && hasDigits) score += 10;
+    if (isValid) score += 20;
+
+    return score;
   }
 
   static String _clean(String text) =>
