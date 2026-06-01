@@ -18,7 +18,8 @@ class OCRResult {
 class OCRProcessor {
   OCRProcessor._();
 
-  static final _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  static final _recognizer =
+      TextRecognizer(script: TextRecognitionScript.latin);
 
   /// Runs ML Kit text recognition on [imagePath] and returns the best plate candidate.
   static Future<OCRResult?> processImage(String imagePath) async {
@@ -34,12 +35,12 @@ class OCRProcessor {
 
       final candidates = _buildCandidates(recognized);
       final plate = PlateValidator.extractBest(candidates);
-      final isValid = PlateValidator.isValidPlate(plate);
+      if (plate.isEmpty || !PlateValidator.isValidPlate(plate)) return null;
 
       return OCRResult(
-        plateNumber: plate.isEmpty ? rawText.split('\n').first.trim().toUpperCase() : plate,
+        plateNumber: plate,
         rawText: rawText,
-        isValidPlate: isValid,
+        isValidPlate: true,
       );
     } catch (e) {
       debugPrint('OCRProcessor error: $e');
@@ -57,7 +58,8 @@ class OCRProcessor {
       _addCandidate(candidates, blockLine);
 
       if (block.lines.length > 1) {
-        final mergedBlockLines = block.lines.map((line) => line.text.trim()).join(' ');
+        final mergedBlockLines =
+            block.lines.map((line) => line.text.trim()).join(' ');
         _addCandidate(candidates, mergedBlockLines);
       }
 
@@ -65,7 +67,8 @@ class OCRProcessor {
         final t = line.text.trim();
         _addCandidate(candidates, t);
 
-        final elements = line.elements.map((element) => element.text.trim()).toList();
+        final elements =
+            line.elements.map((element) => element.text.trim()).toList();
         _addJoinedCandidates(candidates, elements);
 
         for (final element in line.elements) {

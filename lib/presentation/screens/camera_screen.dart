@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_strings.dart';
+import '../../core/constants/plate_scan_window.dart';
 import '../viewmodels/camera_viewmodel.dart';
 import '../widgets/loading_overlay.dart';
 import 'result_screen.dart';
@@ -15,7 +16,8 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
+class _CameraScreenState extends State<CameraScreen>
+    with WidgetsBindingObserver {
   CameraController? _ctrl;
   bool _ready = false;
   bool _capturing = false;
@@ -83,20 +85,24 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       if (!mounted) return;
 
       final vm = context.read<CameraViewModel>();
-      final result = await vm.processImage(file.path);
+      final plateImagePath = await vm.preparePlateImage(file.path);
+      final result = await vm.processImage(plateImagePath);
 
       if (!mounted) return;
       if (result != null) {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ResultScreen(imagePath: file.path, ocrResult: result),
+            builder: (_) =>
+                ResultScreen(imagePath: plateImagePath, ocrResult: result),
           ),
         );
         vm.reset();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(vm.errorMsg.isNotEmpty ? vm.errorMsg : AppStrings.ocrFailed)),
+          SnackBar(
+              content: Text(
+                  vm.errorMsg.isNotEmpty ? vm.errorMsg : AppStrings.ocrFailed)),
         );
       }
     } finally {
@@ -130,7 +136,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         child: _error != null
             ? _errorBody()
             : !_ready
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white))
                 : _cameraBody(),
       ),
     );
@@ -152,7 +159,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               const Spacer(),
               IconButton(
                 icon: Icon(
-                  _flash == FlashMode.torch ? Icons.flashlight_on : Icons.flashlight_off,
+                  _flash == FlashMode.torch
+                      ? Icons.flashlight_on
+                      : Icons.flashlight_off,
                   color: Colors.white,
                 ),
                 onPressed: _toggleFlash,
@@ -195,7 +204,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.camera_alt_outlined, size: 64, color: Colors.white54),
+            const Icon(Icons.camera_alt_outlined,
+                size: 64, color: Colors.white54),
             const SizedBox(height: 20),
             Text(
               _error!,
@@ -210,7 +220,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(AppStrings.cancel, style: TextStyle(color: Colors.white60)),
+              child: const Text(AppStrings.cancel,
+                  style: TextStyle(color: Colors.white60)),
             ),
           ],
         ),
@@ -222,13 +233,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 class _ScannerOverlay extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final scanW = size.width * 0.9;
-    final scanH = size.height * 0.2;
-    final rect = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height * 0.42),
-      width: scanW,
-      height: scanH,
-    );
+    final rect = PlateScanWindow.rectForSize(size);
 
     final dimPaint = Paint()..color = Colors.black.withValues(alpha: 0.60);
     final path = Path()
@@ -291,7 +296,8 @@ class _CaptureButton extends StatelessWidget {
         child: isCapturing
             ? const Padding(
                 padding: EdgeInsets.all(20),
-                child: CircularProgressIndicator(strokeWidth: 3, color: Colors.black54),
+                child: CircularProgressIndicator(
+                    strokeWidth: 3, color: Colors.black54),
               )
             : const Icon(Icons.camera_alt, color: Colors.black87, size: 32),
       ),

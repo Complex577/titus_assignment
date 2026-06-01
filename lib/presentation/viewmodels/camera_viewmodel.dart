@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/utils/ocr_processor.dart';
+import '../../core/utils/plate_image_cropper.dart';
 import '../../core/utils/plate_validator.dart';
 import '../../data/models/scan_record.dart';
 import '../../data/repositories/scan_repository.dart';
@@ -21,6 +22,10 @@ class CameraViewModel extends ChangeNotifier {
   bool get isProcessing => _status == ScanStatus.processing;
 
   // ── OCR ────────────────────────────────────────────────────────────────────
+  Future<String> preparePlateImage(String imagePath) async {
+    return await PlateImageCropper.cropToScanWindow(imagePath) ?? imagePath;
+  }
+
   Future<OCRResult?> processImage(String imagePath) async {
     _status = ScanStatus.processing;
     _errorMsg = '';
@@ -29,7 +34,8 @@ class CameraViewModel extends ChangeNotifier {
     try {
       final result = await OCRProcessor.processImage(imagePath);
       if (result == null) {
-        _errorMsg = 'No text detected. Try better lighting.';
+        _errorMsg =
+            'No plate detected. Align the plate in the guide and try again.';
         _status = ScanStatus.failed;
         notifyListeners();
         return null;
@@ -51,7 +57,8 @@ class CameraViewModel extends ChangeNotifier {
     required String rawText,
     String? tempImagePath,
   }) async {
-    final savedPath = tempImagePath != null ? await _persistImage(tempImagePath) : null;
+    final savedPath =
+        tempImagePath != null ? await _persistImage(tempImagePath) : null;
     final record = ScanRecord(
       plateNumber: PlateValidator.normalize(plateNumber),
       imagePath: savedPath,
@@ -74,7 +81,8 @@ class CameraViewModel extends ChangeNotifier {
   Future<String?> _persistImage(String tempPath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final dest = '${dir.path}/plate_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final dest =
+          '${dir.path}/plate_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await File(tempPath).copy(dest);
       return dest;
     } catch (e) {
