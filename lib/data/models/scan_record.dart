@@ -26,7 +26,7 @@ class ScanRecord {
 
   factory ScanRecord.fromMap(Map<String, dynamic> map) => ScanRecord(
         id: map['id'] as int?,
-        plateNumber: map['plate_number'] as String,
+        plateNumber: map['plate_number'] as String, 
         imagePath: map['image_path'] as String?,
         scanDate: DateTime.fromMillisecondsSinceEpoch(map['scan_date'] as int),
         rawText: map['raw_text'] as String? ?? '',
